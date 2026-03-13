@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ca">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J2E - El Temps</title>
+    <link rel="icon" type="image/x-icon" href="../img/logo.ico">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div id="weather-bg" class="weather-bg-container"></div>
+
+    <header class="navbar">
+        <div class="header-logo">
+            <img src="../img/logo.png" alt="Logo" class="mini-logo">
+            <span class="logo-text">J2E</span>
+        </div>
+        <button class="map-btn"><i class="fa-regular fa-map"></i> Mapa Mundial</button>
+    </header>
+
+    <main class="main-content">
+
+        <div class="search-group">
+            <input type="text" id="cityInput" placeholder="Buscar ciutat...">
+            <button id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+
+        <div id="errorMessage" class="error">Ciutat no trobada. Torna-ho a provar.</div>
+
+        <div id="weatherResult" class="weather-card" style="display: none;">
+            <div class="city-name" id="cityName">Madrid, Espanya</div>
+            <div id="description" class="desc">Parcialment ennuvolat</div>
+
+            <div class="temp-container">
+                <img id="weatherIcon" class="weather-icon" src="" alt="icona">
+                <div class="temp-main">
+                    <span id="temperature">22°</span>
+                </div>
+            </div>
+            <div class="feels-like">Sensació tèrmica <span id="feelsLike">20°</span></div>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <i class="fa-solid fa-droplet icon-blue"></i>
+                    <span class="label">Humitat</span>
+                    <span class="value" id="humidity">45%</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fa-solid fa-wind icon-gray"></i>
+                    <span class="label">Vent</span>
+                    <span class="value" id="wind">15 km/h</span>
+                </div>
+                <div class="detail-item">
+                    <i class="fa-regular fa-eye icon-gray"></i>
+                    <span class="label">Visibilitat</span>
+                    <span class="value" id="visibility">10 km</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="forecastContainer" class="forecast-container" style="display: none;">
+            <h3>Predicció per els propers dies</h3>
+            <div id="forecastGrid" class="forecast-grid"></div>
+        </div>
+    </main>
+
+    <!-- Modal for forecast details -->
+    <div id="forecastModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modalDate"></h3>
+            <div id="modalDetails" class="modal-details"></div>
+        </div>
+    </div>
+
+    <script src="../javascript/script.js"></script>
+</body>
+
+</html>
