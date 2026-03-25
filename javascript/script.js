@@ -1,6 +1,9 @@
 const API_KEY = '4ed985fb9ddb1fd14d3b447f05d85d6b';
 
 let forecastData = {}; // Store forecast data for modal
+let homeGlobe = null; // Globo per a l'home
+let homeUserLat = 0;
+let homeUserLng = 0;
 
 document.getElementById('searchBtn').addEventListener('click', () => getWeather());
 
@@ -10,13 +13,107 @@ document.getElementById('cityInput').addEventListener('keypress', function (e) {
     }
 });
 
-// Cargar la última ciudad buscada al cargar la página
+// Carregar l'última ciutat cercada en carregar la pàgina
 window.addEventListener('load', () => {
+    // Inicialitzar el mapa del món
+    initHomeGlobe();
+    
     const savedCity = localStorage.getItem('lastCity');
     if (savedCity) {
         getWeather(savedCity);
     }
 });
+
+function initHomeGlobe() {
+    const container = document.getElementById('homeMap');
+    if (!container) return;
+    
+    homeGlobe = Globe()(container)
+        .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+        .backgroundColor('rgba(0,0,0,0)')
+        .width(container.clientWidth > 0 ? container.clientWidth : 650)
+        .height(container.clientWidth > 0 ? container.clientWidth : 650)
+        .pointAltitude(0.1)
+        .pointColor(() => 'red');
+    
+    // Mostrar el mapa per defecte
+    document.getElementById('homeMapContainer').style.display = 'block';
+    
+    // Configurar botons del mapa
+    document.getElementById('homeRefreshBtn').addEventListener('click', () => {
+        document.getElementById('homeStatus').innerText = 'Actualitzant...';
+        document.getElementById('homeWeatherInfo').style.display = 'none';
+        requestHomeLocation();
+    });
+
+    document.getElementById('homeCenterBtn').addEventListener('click', () => {
+        if (homeGlobe) {
+            homeGlobe.pointOfView({ lat: homeUserLat, lng: homeUserLng, altitude: 0.4 }, 1000);
+        }
+    });
+    
+    // Solicitar ubicació inicial
+    requestHomeLocation();
+}
+
+function requestHomeLocation() {
+    if (!navigator.geolocation) {
+        document.getElementById('homeStatus').innerText = 'El teu navegador no admet la geolocalització.';
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const { latitude, longitude } = position.coords;
+            homeUserLat = latitude;
+            homeUserLng = longitude;
+            document.getElementById('homeStatus').innerText = 'Ubicació trobada!';
+            if (homeGlobe) {
+                homeGlobe.pointsData([{ lat: latitude, lng: longitude, size: 0.5 }]);
+                homeGlobe.pointOfView({ lat: latitude, lng: longitude, altitude: 0.4 }, 1000);
+            }
+            await loadHomeWeather(latitude, longitude);
+        },
+        (error) => {
+            console.error('Geolocation error:', error);
+            document.getElementById('homeStatus').innerText = `No s'ha pogut obtenir la ubicació.`;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+async function loadHomeWeather(lat, lon) {
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=ca`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.message);
+
+        const city = data.name || 'Ubicació desconeguda';
+        const country = data.sys?.country ? `, ${data.sys.country}` : '';
+        const description = data.weather[0].description;
+        const icon = data.weather[0].icon;
+        const temp = Math.round(data.main.temp);
+
+        document.getElementById('homeLocationName').innerText = `${city}${country}`;
+        document.getElementById('homeLocalTime').innerText = `Hora local: ${new Date().toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' })}`;
+        document.getElementById('homeWeatherSummary').innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="${description}" style="width: 50px; height: 50px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));">
+                <span style="font-size: 1.1rem;"><strong>${description.charAt(0).toUpperCase() + description.slice(1)}</strong> | ${temp}°C</span>
+            </div>
+        `;
+
+        document.getElementById('homeWeatherInfo').style.display = 'flex';
+        document.getElementById('homeStatus').innerText = 'Ubicació geolocalitzada correctament.';
+
+        updateBackground(data.weather[0].id, icon);
+    } catch (error) {
+        console.error('Weather error:', error);
+        document.getElementById('homeStatus').innerText = 'Error carregant el clima.';
+    }
+}
 
 async function getWeather(savedCity = null) {
     const inputField = document.getElementById('cityInput');
@@ -29,7 +126,7 @@ async function getWeather(savedCity = null) {
     if (savedCity) inputField.value = savedCity;
 
     try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric&lang=es`;
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric&lang=ca`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -51,24 +148,27 @@ async function getWeather(savedCity = null) {
 
             updateBackground(data.weather[0].id, data.weather[0].icon);
 
-            // Guardar en caché
+            // Desar a la memòria cau
             localStorage.setItem('lastCity', data.name);
 
             resultDiv.style.display = 'block';
             errorP.style.display = 'none';
+            
+            // Ocultar el mapa del món cuando se muestren resultats
+            document.getElementById('homeMapContainer').style.display = 'none';
 
             getForecast(city);
         } else {
             resultDiv.style.display = 'none';
             document.getElementById('forecastContainer').style.display = 'none';
             errorP.style.display = 'block';
-            errorP.innerText = "Ciudad no encontrada. Prueba de nuevo.";
+            errorP.innerText = "No s'ha trobat la ciutat. Torna-ho a provar.";
         }
     } catch (error) {
         console.error("Error connectant amb el servidor:", error);
         errorP.style.display = 'block';
         document.getElementById('forecastContainer').style.display = 'none';
-        errorP.innerText = "Error de conexión a internet.";
+        errorP.innerText = "Error de connexió a internet.";
     }
 }
 
@@ -156,7 +256,7 @@ function createParticles(container, className, count) {
 
 async function getForecast(city) {
     try {
-        const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${API_KEY}&units=metric&lang=es`;
+        const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${API_KEY}&units=metric&lang=ca`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -198,7 +298,7 @@ async function getForecast(city) {
                 const dayIcon = icon.replace('n', 'd');
                 
                 card.innerHTML = `
-                    <div class="forecast-date">${new Date(date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })}</div>
+                    <div class="forecast-date">${new Date(date).toLocaleDateString('ca-ES', { weekday: 'short', day: 'numeric' })}</div>
                     <img class="forecast-icon" src="https://openweathermap.org/img/wn/${dayIcon}@2x.png" alt="${mostCommonDesc}">
                     <div class="forecast-temp">${Math.round(minTemp)}° / ${Math.round(maxTemp)}°</div>
                     <div class="forecast-desc">${mostCommonDesc.charAt(0).toUpperCase() + mostCommonDesc.slice(1)}</div>
@@ -219,11 +319,11 @@ function showForecastDetails(date) {
     const modalDate = document.getElementById('modalDate');
     const modalDetails = document.getElementById('modalDetails');
 
-    modalDate.innerText = new Date(date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    modalDate.innerText = new Date(date).toLocaleDateString('ca-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     modalDetails.innerHTML = '';
 
     forecastData[date].forEach(item => {
-        const time = new Date(item.dt * 1000).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        const time = new Date(item.dt * 1000).toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
         const temp = Math.round(item.main.temp);
         const desc = item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1);
         const icon = item.weather[0].icon;
@@ -252,4 +352,31 @@ window.addEventListener('click', (event) => {
     if (event.target === modal) {
         modal.style.display = 'none';
     }
+});
+
+// Neteja els resultats de cerca quan es fa clic al logo
+document.querySelector('.header-logo').addEventListener('click', (e) => {
+    // Només netejar si es fa clic directament al logo (no deixar que el navegador ho faci automàticament)
+    e.preventDefault();
+    
+    // Netejar localStorage
+    localStorage.removeItem('lastCity');
+    
+    // Netejar el camp d'entrada
+    document.getElementById('cityInput').value = '';
+    
+    // Ocultar els resultats
+    document.getElementById('weatherResult').style.display = 'none';
+    document.getElementById('forecastContainer').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'none';
+    
+    // Mostrar el mapa del món
+    document.getElementById('homeMapContainer').style.display = 'block';
+    
+    // Restablir el fons a la pàgina d'inici
+    document.body.className = '';
+    document.getElementById('weather-bg').innerHTML = '';
+    
+    // Navegar a la pàgina de inici
+    window.location.href = 'index.html';
 });

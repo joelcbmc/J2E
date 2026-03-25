@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ca">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa del món</title>
+    <link rel="icon" type="image/x-icon" href="../img/logo.ico">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/globe.gl"></script>
+</head>
+
+<body class="map">
+
+    <main class="main-content">
+        <h1 class="subtitle">Mapa del món</h1>
+
+        <div class="map-container" id="map"></div>
+
+        <div class="map-info" id="mapInfo">
+            <div class="map-status" id="status">Carregant la teva ubicació...</div>
+            <div class="map-weather" id="weatherInfo" style="display: none;">
+                <div class="map-weather-title">Clima local</div>
+                <div id="locationName"></div>
+                <div id="localTime"></div>
+                <div id="weatherSummary"></div>
+                <div class="map-weather-hint">Si no funciona, comprova que has donat permís de localització al
+                    navegador.</div>
+                <div style="display:flex; gap:10px; justify-content:center; margin-top:12px;">
+                    <button class="map-btn" id="refreshBtn">Recarregar</button>
+                    <button class="map-btn" id="centerBtn">Centrar</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="../javascript/map.js"></script>
+</body>
+
+</html>

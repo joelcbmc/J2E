@@ -6,29 +6,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>J2E - El Temps</title>
     <link rel="icon" type="image/x-icon" href="../img/logo.ico">
-    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/globe.gl"></script>
 </head>
 
 <body>
     <div id="weather-bg" class="weather-bg-container"></div>
 
     <header class="navbar">
-        <div class="header-logo">
+        <a href="index.html" class="header-logo">
             <img src="../img/logo.png" alt="Logo" class="mini-logo">
             <span class="logo-text">J2E</span>
-        </div>
-        <button class="map-btn"><i class="fa-regular fa-map"></i> Mapa Mundial</button>
+        </a>
     </header>
 
     <main class="main-content">
 
         <div class="search-group">
-            <input type="text" id="cityInput" placeholder="Buscar ciutat...">
+            <input type="text" id="cityInput" placeholder="Cerca una ciutat...">
             <button id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+
+        <div id="homeMapContainer" style="display: none;">
+            <div class="map-container" id="homeMap"></div>
+            <div class="map-info" id="homeMapInfo">
+                <div class="map-status" id="homeStatus">Carregant la teva ubicació...</div>
+                <div class="map-weather" id="homeWeatherInfo" style="display: none;">
+                    <div class="map-weather-title">Clima local</div>
+                    <div id="homeLocationName"></div>
+                    <div id="homeLocalTime"></div>
+                    <div id="homeWeatherSummary"></div>
+                    <div class="map-weather-hint">Si no funciona, comprova que has donat permís de localització al navegador.</div>
+                    <div style="display:flex; gap:10px; justify-content:center; margin-top:12px;">
+                        <button class="map-btn" id="homeRefreshBtn">Recarregar</button>
+                        <button class="map-btn" id="homeCenterBtn">Centrar</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="errorMessage" class="error">Ciutat no trobada. Torna-ho a provar.</div>
@@ -65,7 +83,7 @@
         </div>
 
         <div id="forecastContainer" class="forecast-container" style="display: none;">
-            <h3>Predicció per els propers dies</h3>
+            <h3>Predicció per als pròxims dies</h3>
             <div id="forecastGrid" class="forecast-grid"></div>
         </div>
     </main>
@@ -79,7 +97,7 @@
         </div>
     </div>
 
-    <script src="../javascript/script.js"></script>
+    <script src="javascript/script.js"></script>
 </body>
 
 </html>
