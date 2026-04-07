@@ -11,6 +11,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="lib/supabaseClient.js"></script>
+    <script src="lib/authService.js"></script>
     <script src="https://unpkg.com/globe.gl"></script>
 </head>
 
@@ -22,7 +25,58 @@
             <img src="../img/logo.png" alt="Logo" class="mini-logo">
             <span class="logo-text">J2E</span>
         </a>
+        <div class="auth-buttons">
+            <button id="loginBtn" class="auth-btn">Iniciar sessió</button>
+            <button id="registerBtn" class="auth-btn auth-btn-primary">Registrar-se</button>
+            <div id="userMenu" class="user-menu" style="display: none;">
+                <button id="userBtn" class="user-btn">
+                    <i class="fa-solid fa-user"></i>
+                    <span id="userName"></span>
+                </button>
+                <div id="userDropdown" class="user-dropdown">
+                    <button id="logoutBtn" class="logout-btn">Tancar sessió</button>
+                </div>
+            </div>
+        </div>
     </header>
+
+    <!-- Auth Modal -->
+    <div id="authModal" class="auth-modal">
+        <div class="auth-modal-content">
+            <span class="auth-close">&times;</span>
+            
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form">
+                <h2>Iniciar sessió</h2>
+                <div class="form-group">
+                    <input type="email" id="loginEmail" placeholder="Correu electrònic" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="loginPassword" placeholder="Contrasenya" required>
+                </div>
+                <button id="loginSubmit" class="auth-submit">Iniciar sessió</button>
+                <p class="auth-switch">No tens compte? <button id="showRegister">Registrar-se</button></p>
+            </div>
+            
+            <!-- Register Form -->
+            <div id="registerForm" class="auth-form" style="display: none;">
+                <h2>Registrar-se</h2>
+                <div class="form-group">
+                    <input type="text" id="registerUsername" placeholder="Nom d'usuari" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="registerEmail" placeholder="Correu electrònic" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="registerPassword" placeholder="Contrasenya" required>
+                </div>
+                <button id="registerSubmit" class="auth-submit">Crear compte</button>
+                <p class="auth-switch">Ja tens compte? <button id="showLogin">Iniciar sessió</button></p>
+            </div>
+            
+            <div id="authMessage" class="auth-message"></div>
+        </div>
+    </div>
 
     <main class="main-content">
 
@@ -97,7 +151,7 @@
         </div>
     </div>
 
-    <script src="javascript/script.js"></script>
+    <script type="module" src="javascript/script.js"></script>
 </body>
 
 </html>

@@ -380,3 +380,227 @@ document.querySelector('.header-logo').addEventListener('click', (e) => {
     // Navegar a la pàgina de inici
     window.location.href = 'index.html';
 });
+
+// ============================================
+// AUTH SYSTEM - Supabase Integration
+// ============================================
+
+// Wait for supabase to be ready before initializing auth
+async function initAuthSystem() {
+    // Wait for supabase client
+    if (window.supabaseReady) {
+        await window.supabaseReady;
+    }
+    
+    // Now initialize auth
+    await initAuth();
+}
+
+// DOM Elements
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const authModal = document.getElementById('authModal');
+const authClose = document.querySelector('.auth-close');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const showRegister = document.getElementById('showRegister');
+const showLogin = document.getElementById('showLogin');
+const loginSubmit = document.getElementById('loginSubmit');
+const registerSubmit = document.getElementById('registerSubmit');
+const authMessage = document.getElementById('authMessage');
+const userMenu = document.getElementById('userMenu');
+const userBtn = document.getElementById('userBtn');
+const userDropdown = document.getElementById('userDropdown');
+const userName = document.getElementById('userName');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// Modal Functions
+function openModal() {
+    authModal.classList.add('active');
+}
+
+function closeModal() {
+    authModal.classList.remove('active');
+    clearForm();
+}
+
+function clearForm() {
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const registerUsername = document.getElementById('registerUsername');
+    const registerEmail = document.getElementById('registerEmail');
+    const registerPassword = document.getElementById('registerPassword');
+    
+    if (loginEmail) loginEmail.value = '';
+    if (loginPassword) loginPassword.value = '';
+    if (registerUsername) registerUsername.value = '';
+    if (registerEmail) registerEmail.value = '';
+    if (registerPassword) registerPassword.value = '';
+    if (authMessage) {
+        authMessage.style.display = 'none';
+        authMessage.className = 'auth-message';
+    }
+}
+
+function showMessage(message, type = 'info') {
+    authMessage.textContent = message;
+    authMessage.className = `auth-message ${type}`;
+    authMessage.style.display = 'block';
+}
+
+// Switch Forms
+if (showRegister) {
+    showRegister.addEventListener('click', () => {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+        clearForm();
+    });
+}
+
+if (showLogin) {
+    showLogin.addEventListener('click', () => {
+        registerForm.style.display = 'none';
+        loginForm.style.display = 'block';
+        clearForm();
+    });
+}
+
+// Open Modal Events
+if (loginBtn) loginBtn.addEventListener('click', openModal);
+if (registerBtn) registerBtn.addEventListener('click', openModal);
+if (authClose) authClose.addEventListener('click', closeModal);
+
+if (authModal) {
+    authModal.addEventListener('click', (e) => {
+        if (e.target === authModal) closeModal();
+    });
+}
+
+// Login Handler
+if (loginSubmit) {
+    loginSubmit.addEventListener('click', async () => {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+
+        if (!email || !password) {
+            showMessage('Si us plau, completa tots els camps', 'error');
+            return;
+        }
+
+        loginSubmit.disabled = true;
+        loginSubmit.textContent = 'Iniciant sessió...';
+
+        const result = await window.signIn(email, password);
+
+        if (result.success) {
+            showMessage('Sessió iniciada correctament!', 'success');
+            setTimeout(() => {
+                closeModal();
+                updateAuthUI(result.user);
+            }, 1000);
+        } else {
+            showMessage(result.error || 'Error en iniciar sessió', 'error');
+        }
+
+        loginSubmit.disabled = false;
+        loginSubmit.textContent = 'Iniciar sessió';
+    });
+}
+
+// Register Handler
+if (registerSubmit) {
+    registerSubmit.addEventListener('click', async () => {
+        const username = document.getElementById('registerUsername').value.trim();
+        const email = document.getElementById('registerEmail').value.trim();
+        const password = document.getElementById('registerPassword').value;
+
+        if (!username || !email || !password) {
+            showMessage('Si us plau, completa tots els camps', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            showMessage('La contrasenya ha de tenir almenys 6 caràcters', 'error');
+            return;
+        }
+
+        registerSubmit.disabled = true;
+        registerSubmit.textContent = 'Creant compte...';
+
+        const result = await window.signUp(email, password, username);
+
+        if (result.success) {
+            showMessage('Compte creat! Si has activat el correu de confirmació, revisa la teva safata d\'entrada.', 'success');
+            setTimeout(() => {
+                closeModal();
+                updateAuthUI(result.user);
+            }, 2000);
+        } else {
+            showMessage(result.error || 'Error en registrar', 'error');
+        }
+
+        registerSubmit.disabled = false;
+        registerSubmit.textContent = 'Crear compte';
+    });
+}
+
+// User Menu Toggle
+if (userBtn) {
+    userBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('active');
+    });
+}
+
+document.addEventListener('click', (e) => {
+    if (userMenu && !userMenu.contains(e.target)) {
+        userDropdown.classList.remove('active');
+    }
+});
+
+// Logout Handler
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        await window.signOut();
+        userDropdown.classList.remove('active');
+        updateAuthUI(null);
+    });
+}
+
+// Update UI based on auth state
+function updateAuthUI(user) {
+    if (user) {
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (registerBtn) registerBtn.style.display = 'none';
+        if (userMenu) userMenu.style.display = 'block';
+        
+        const displayName = user.user_metadata?.username || user.email?.split('@')[0];
+        if (userName) userName.textContent = displayName;
+    } else {
+        if (loginBtn) loginBtn.style.display = 'inline-block';
+        if (registerBtn) registerBtn.style.display = 'inline-block';
+        if (userMenu) userMenu.style.display = 'none';
+    }
+}
+
+// Initialize auth state
+async function initAuth() {
+    if (typeof window.getCurrentUser === 'function') {
+        const result = await window.getCurrentUser();
+        updateAuthUI(result.success ? result.user : null);
+    }
+}
+
+// Listen for auth changes
+if (typeof window.onAuthStateChanged === 'function') {
+    window.onAuthStateChanged((session) => {
+        if (session) {
+            updateAuthUI(session.user);
+        } else {
+            updateAuthUI(null);
+        }
+    });
+}
+
+// Initialize on page load - wait for supabase first
+initAuthSystem();

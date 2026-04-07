@@ -1,0 +1,4 @@
+[     215ms] [LOG] Supabase initialized successfully @ https://j2e.cat/lib/supabaseClient.js:17
+[    3303ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://j2e.cat/:0
+[    3303ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://j2e.cat/:0
+[   19497ms] [ERROR] Failed to load resource: the server responded with a status of 400 () @ https://lpqicpquvwcodfjquerd.supabase.co/auth/v1/token?grant_type=password:0

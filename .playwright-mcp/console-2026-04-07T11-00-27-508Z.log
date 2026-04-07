@@ -1,0 +1,11 @@
+[      61ms] [LOG] Supabase initialized successfully @ https://j2e.cat/lib/supabaseClient.js:17
+[    2791ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://j2e.cat/:0
+[    2791ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://j2e.cat/:0
+[   45214ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://lpqicpquvwcodfjqquerd.supabase.co/auth/v1/token?grant_type=password:0
+[   45214ms] [ERROR] TypeError: Failed to fetch
+    at https://unpkg.com/@supabase/supabase-js@2:21:2872
+    at lr (https://unpkg.com/@supabase/supabase-js@2:21:8914)
+    at Y (https://unpkg.com/@supabase/supabase-js@2:21:8656)
+    at ei.signInWithPassword (https://unpkg.com/@supabase/supabase-js@2:23:19336)
+    at signIn (https://j2e.cat/lib/authService.js:57:49)
+    at async HTMLButtonElement.<anonymous> (https://j2e.cat/javascript/script.js:493:24) @ https://unpkg.com/@supabase/supabase-js@2:20
