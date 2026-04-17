@@ -347,12 +347,12 @@ function showForecastDetails(date) {
         modalDetails.appendChild(itemDiv);
     });
 
-    modal.style.display = 'block';
+    modal.classList.add('active');
 }
 
 // Close modal
 document.querySelector('.close').addEventListener('click', () => {
-    document.getElementById('forecastModal').style.display = 'none';
+    document.getElementById('forecastModal').classList.remove('active');
 });
 
 window.addEventListener('click', (event) => {
