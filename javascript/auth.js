@@ -1,29 +1,29 @@
 import { signIn, signUp, signOut, onAuthStateChanged, isAuthenticated } from '../lib/authService.js';
-
-const API_BASE = 'http://localhost:8080';
+import { toggleCommentsSection } from './comments.js';
 
 const loginBtn = document.getElementById('loginBtn');
 const registerBtn = document.getElementById('registerBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const authModal = document.getElementById('authModal');
-const authClose = document.getElementById('authClose');
+const authClose = document.querySelector('.auth-close');
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
-const switchToRegister = document.getElementById('switchToRegister');
-const switchToLogin = document.getElementById('switchToLogin');
-const submitLogin = document.getElementById('submitLogin');
-const submitRegister = document.getElementById('submitRegister');
-const authMessage = document.getElementById('authMessage');
+const showRegister = document.getElementById('showRegister');
+const showLogin = document.getElementById('showLogin');
+const submitLogin = document.getElementById('loginSubmit');
+const submitRegister = document.getElementById('registerSubmit');
 
 loginBtn.addEventListener('click', () => showModal(true));
 registerBtn.addEventListener('click', () => showModal(false));
 authClose.addEventListener('click', hideModal);
-switchToRegister.addEventListener('click', (e) => {
+showRegister.addEventListener('click', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     showRegisterForm();
 });
-switchToLogin.addEventListener('click', (e) => {
+showLogin.addEventListener('click', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     showLoginForm();
 });
 submitLogin.addEventListener('click', handleLogin);
@@ -33,20 +33,38 @@ logoutBtn.addEventListener('click', handleLogout);
 document.addEventListener('DOMContentLoaded', () => {
     checkAuthStatus();
     setupAuthStateListener();
+    
+    // Also re-setup event listeners on DOM ready to ensure they're attached
+    const loginBtnCheck = document.getElementById('loginBtn');
+    const registerBtnCheck = document.getElementById('registerBtn');
+    if (loginBtnCheck) loginBtnCheck.addEventListener('click', () => showModal(true));
+    if (registerBtnCheck) registerBtnCheck.addEventListener('click', () => showModal(false));
 });
 
 function showModal(isLogin) {
-    authModal.style.display = 'block';
-    authMessage.textContent = '';
+    authModal.classList.add('active');
+    
+    // Clear messages from both forms
+    const loginMsg = loginForm.querySelector('.auth-message');
+    const registerMsg = registerForm.querySelector('.auth-message');
+    if (loginMsg) loginMsg.textContent = '';
+    if (registerMsg) registerMsg.textContent = '';
+    
+    // Clear input fields
+    clearForms();
+    
+    // Ensure correct form is displayed
     if (isLogin) {
-        showLoginForm();
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
     } else {
-        showRegisterForm();
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
     }
 }
 
 function hideModal() {
-    authModal.style.display = 'none';
+    authModal.classList.remove('active');
     clearForms();
 }
 
@@ -61,7 +79,7 @@ function showRegisterForm() {
 }
 
 function clearForms() {
-    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginEmail').value = '';
     document.getElementById('loginPassword').value = '';
     document.getElementById('registerUsername').value = '';
     document.getElementById('registerEmail').value = '';
@@ -69,7 +87,7 @@ function clearForms() {
 }
 
 async function handleLogin() {
-    const email = document.getElementById('loginUsername').value;
+    const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
 
     if (!email || !password) {
@@ -148,21 +166,53 @@ function updateUIForLoggedInUser() {
     registerBtn.style.display = 'none';
     logoutBtn.style.display = 'inline-block';
     
+    const userMenu = document.getElementById('userMenu');
+    if (userMenu) {
+        userMenu.style.display = 'block';
+        const userName = document.getElementById('userName');
+        const username = localStorage.getItem('username');
+        if (userName && username) {
+            userName.textContent = username;
+        }
+    }
+    
     const username = localStorage.getItem('username');
     if (username) {
         console.log('Usuario conectado:', username);
     }
+    
+    // Show comments section
+    toggleCommentsSection(true);
 }
 
 function updateUIForLoggedOutUser() {
     loginBtn.style.display = 'inline-block';
     registerBtn.style.display = 'inline-block';
     logoutBtn.style.display = 'none';
+    
+    const userMenu = document.getElementById('userMenu');
+    
+    // Hide comments section
+    toggleCommentsSection(false);
+    if (userMenu) {
+        userMenu.style.display = 'none';
+    }
 }
 
 function showMessage(message, type = 'error') {
-    authMessage.textContent = message;
-    authMessage.className = type;
+    const authMessage = getAuthMessage();
+    if (authMessage) {
+        authMessage.textContent = message;
+        authMessage.className = 'auth-message ' + type;
+        authMessage.style.display = 'block';
+    }
+}
+
+function getAuthMessage() {
+    const loginVisible = loginForm.style.display !== 'none';
+    return loginVisible 
+        ? loginForm.querySelector('.auth-message')
+        : registerForm.querySelector('.auth-message');
 }
 
 window.addEventListener('click', (event) => {

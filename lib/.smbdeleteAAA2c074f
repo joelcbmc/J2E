@@ -1,0 +1,86 @@
+async function waitForSupabase() {
+  if (window.supabaseClient) return window.supabaseClient;
+  if (window.supabaseReady) return await window.supabaseReady;
+  return new Promise(resolve => {
+    const check = () => window.supabaseClient ? resolve(window.supabaseClient) : setTimeout(check, 50);
+    check();
+  });
+}
+
+window.signUp = async function(email, password, username) {
+  try {
+    const supabase = await waitForSupabase();
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
+    if (error) throw error;
+    return { success: true, user: data.user };
+  } catch (error) { return { success: false, error: error.message }; }
+};
+
+window.signIn = async function(email, password) {
+  try {
+    const supabase = await waitForSupabase();
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    localStorage.setItem('authToken', data.session.access_token);
+    localStorage.setItem('userId', data.user.id);
+    localStorage.setItem('userEmail', data.user.email);
+    localStorage.setItem('username', data.user.user_metadata?.username || data.user.email);
+    return { success: true, user: data.user, session: data.session };
+  } catch (error) { return { success: false, error: error.message }; }
+};
+
+window.signOut = async function() {
+  try {
+    const supabase = await waitForSupabase();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('username');
+    return { success: true };
+  } catch (error) { return { success: false, error: error.message }; }
+};
+
+window.getCurrentUser = async function() {
+  try {
+    const supabase = await waitForSupabase();
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    return { success: true, user: data.user };
+  } catch (error) { return { success: false, error: error.message }; }
+};
+
+window.getSession = async function() {
+  try {
+    const supabase = await waitForSupabase();
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    return { success: true, session: data.session };
+  } catch (error) { return { success: false, error: error.message }; }
+};
+
+window.isAuthenticated = () => !!localStorage.getItem('authToken');
+
+window.onAuthStateChanged = function(callback) {
+  const setupListener = () => {
+    if (window.supabaseClient) {
+      return window.supabaseClient.auth.onAuthStateChange((event, session) => {
+        if (session) {
+          localStorage.setItem('authToken', session.access_token);
+          localStorage.setItem('userId', session.user.id);
+          localStorage.setItem('userEmail', session.user.email);
+          localStorage.setItem('username', session.user.user_metadata?.username || session.user.email);
+        } else {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userId');
+          localStorage.removeItem('userEmail');
+          localStorage.removeItem('username');
+        }
+        callback(session);
+      });
+    }
+    setTimeout(setupListener, 50);
+  };
+  return setupListener();
+};

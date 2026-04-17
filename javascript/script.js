@@ -1,3 +1,6 @@
+import './auth.js';
+import { toggleCommentsSection } from './comments.js';
+
 const API_KEY = '4ed985fb9ddb1fd14d3b447f05d85d6b';
 
 let forecastData = {}; // Store forecast data for modal
@@ -153,6 +156,11 @@ async function getWeather(savedCity = null) {
 
             resultDiv.style.display = 'block';
             errorP.style.display = 'none';
+            
+            // Recargar comentarios de la nueva ciudad
+            if (window.loadComments) {
+                window.loadComments();
+            }
             
             // Ocultar el mapa del món cuando se muestren resultats
             document.getElementById('homeMapContainer').style.display = 'none';
@@ -415,8 +423,15 @@ const userName = document.getElementById('userName');
 const logoutBtn = document.getElementById('logoutBtn');
 
 // Modal Functions
-function openModal() {
+function openModal(type = 'login') {
     authModal.classList.add('active');
+    if (type === 'register') {
+        loginForm.style.display = 'none';
+        registerForm.style.display = 'block';
+    } else {
+        loginForm.style.display = 'block';
+        registerForm.style.display = 'none';
+    }
 }
 
 function closeModal() {

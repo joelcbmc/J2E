@@ -14,13 +14,21 @@ let userLng = 0;
 
 function init() {
     const container = document.getElementById('map');
+    const initialSize = Math.max(container.clientWidth, 320);
     globe = Globe()(container)
         .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
         .backgroundColor('rgba(0,0,0,0)')
-        .width(container.clientWidth > 0 ? container.clientWidth : 650)
-        .height(container.clientWidth > 0 ? container.clientWidth : 650)
+        .width(initialSize)
+        .height(initialSize)
         .pointAltitude(0.1)
         .pointColor(() => 'red');
+
+    const resizeGlobe = () => {
+        const size = Math.max(container.clientWidth, 320);
+        globe.width(size).height(size);
+    };
+
+    window.addEventListener('resize', resizeGlobe);
 
     refreshBtn.addEventListener('click', () => {
         statusEl.innerText = 'Actualitzant...';

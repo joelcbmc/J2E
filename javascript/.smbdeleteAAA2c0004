@@ -1,0 +1,319 @@
+const API_KEY = '4ed985fb9ddb1fd14d3b447f05d85d6b';
+
+let forecastData = {};
+let homeGlobe = null;
+let homeUserLat = 0;
+let homeUserLng = 0;
+
+document.getElementById('searchBtn').addEventListener('click', () => getWeather());
+document.getElementById('cityInput').addEventListener('keypress', e => e.key === 'Enter' && getWeather());
+
+window.addEventListener('load', () => {
+    initHomeGlobe();
+    const savedCity = localStorage.getItem('lastCity');
+    if (savedCity) getWeather(savedCity);
+});
+
+function initHomeGlobe() {
+    const container = document.getElementById('homeMap');
+    if (!container) return;
+    
+    homeGlobe = Globe()(container)
+        .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+        .backgroundColor('rgba(0,0,0,0)')
+        .width(container.clientWidth > 0 ? container.clientWidth : 650)
+        .height(container.clientWidth > 0 ? container.clientWidth : 650)
+        .pointAltitude(0.1)
+        .pointColor(() => 'red');
+    
+    document.getElementById('homeMapContainer').style.display = 'block';
+    
+    document.getElementById('homeRefreshBtn').addEventListener('click', () => {
+        document.getElementById('homeStatus').innerText = 'Actualitzant...';
+        document.getElementById('homeWeatherInfo').style.display = 'none';
+        requestHomeLocation();
+    });
+
+    document.getElementById('homeCenterBtn').addEventListener('click', () => {
+        homeGlobe?.pointOfView({ lat: homeUserLat, lng: homeUserLng, altitude: 0.4 }, 1000);
+    });
+    
+    requestHomeLocation();
+}
+
+function requestHomeLocation() {
+    if (!navigator.geolocation) {
+        document.getElementById('homeStatus').innerText = 'El teu navegador no admet la geolocalització.';
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async ({ coords: { latitude, longitude } }) => {
+            homeUserLat = latitude;
+            homeUserLng = longitude;
+            document.getElementById('homeStatus').innerText = 'Ubicació trobada!';
+            homeGlobe?.pointsData([{ lat: latitude, lng: longitude, size: 0.5 }]);
+            homeGlobe?.pointOfView({ lat: latitude, lng: longitude, altitude: 0.4 }, 1000);
+            await loadHomeWeather(latitude, longitude);
+        },
+        () => document.getElementById('homeStatus').innerText = `No s'ha pogut obtenir la ubicació.`,
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+}
+
+async function loadHomeWeather(lat, lon) {
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric&lang=ca`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message);
+
+        const { name: city, sys: { country = '' }, weather: [{ description, icon }], main: { temp } } = data;
+
+        document.getElementById('homeLocationName').innerText = `${city}, ${country}`;
+        document.getElementById('homeLocalTime').innerText = `Hora local: ${new Date().toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' })}`;
+        document.getElementById('homeWeatherSummary').innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:8px;"><img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="${description}" style="width:50px;height:50px;filter:drop-shadow(0 0 5px rgba(255,255,255,0.3));"><span style="font-size:1.1rem;"><strong>${description.charAt(0).toUpperCase() + description.slice(1)}</strong> | ${Math.round(temp)}°C</span></div>`;
+        document.getElementById('homeWeatherInfo').style.display = 'flex';
+        document.getElementById('homeStatus').innerText = 'Ubicació geolocalitzada correctament.';
+        updateBackground(data.weather[0].id, icon);
+    } catch (e) { document.getElementById('homeStatus').innerText = 'Error carregant el clima.'; }
+}
+
+async function getWeather(savedCity = null) {
+    const input = document.getElementById('cityInput');
+    const city = savedCity || input.value;
+    const resultDiv = document.getElementById('weatherResult');
+    const errorP = document.getElementById('errorMessage');
+    if (!city) return;
+    if (savedCity) input.value = savedCity;
+
+    try {
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric&lang=ca`);
+        const data = await res.json();
+
+        if (res.ok) {
+            document.getElementById('cityName').innerText = `${data.name}, ${data.sys.country}`;
+            document.getElementById('description').innerText = data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1);
+            document.getElementById('weatherIcon').src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png`;
+            document.getElementById('temperature').innerText = `${Math.round(data.main.temp)}°`;
+            document.getElementById('feelsLike').innerText = `${Math.round(data.main.feels_like)}°`;
+            document.getElementById('humidity').innerText = `${data.main.humidity}%`;
+            document.getElementById('wind').innerText = `${Math.round(data.wind.speed * 3.6)} km/h`;
+            document.getElementById('visibility').innerText = `${(data.visibility / 1000).toFixed(0)} km`;
+            updateBackground(data.weather[0].id, data.weather[0].icon);
+            localStorage.setItem('lastCity', data.name);
+            resultDiv.style.display = 'block';
+            errorP.style.display = 'none';
+            document.getElementById('homeMapContainer').style.display = 'none';
+            getForecast(city);
+        } else {
+            resultDiv.style.display = 'none';
+            document.getElementById('forecastContainer').style.display = 'none';
+            errorP.style.display = 'block';
+            errorP.innerText = "No s'ha trobat la ciutat. Torna-ho a provar.";
+        }
+    } catch (e) {
+        errorP.style.display = 'block';
+        document.getElementById('forecastContainer').style.display = 'none';
+        errorP.innerText = "Error de connexió a internet.";
+    }
+}
+
+function updateBackground(weatherId, iconCode) {
+    const bg = document.getElementById('weather-bg');
+    const body = document.body;
+    bg.innerHTML = '';
+    body.className = '';
+    if (iconCode.includes('n')) body.classList.add('night');
+
+    let type = '';
+    if (weatherId >= 200 && weatherId < 300) { type = 'thunderstorm'; createParticles(bg, 'rain-drop', 150); }
+    else if (weatherId >= 300 && weatherId < 600) { type = 'rain'; createParticles(bg, 'rain-drop', 120); }
+    else if (weatherId >= 600 && weatherId < 700) { type = 'snow'; createParticles(bg, 'snow-flake', 80); }
+    else if (weatherId >= 700 && weatherId < 800) { type = 'clouds'; createParticles(bg, 'cloud-particle', 30); }
+    else if (weatherId === 800) type = 'clear';
+    else if (weatherId > 800) { type = 'clouds'; createParticles(bg, 'cloud-particle', 25); }
+    body.classList.add(type);
+}
+
+function createParticles(container, className, count) {
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = className;
+        const left = Math.random() * 110 - 5;
+        const delay = Math.random() * 5;
+        
+        if (className === 'rain-drop') {
+            el.style = `width:1px;opacity:${Math.random() * 0.4 + 0.3};left:${left}%;animation-duration:${Math.random() * 0.5 + 0.4}s;animation-delay:-${delay}s;`;
+        } else if (className === 'snow-flake') {
+            const size = Math.random() * 4 + 2;
+            el.style = `width:${size}px;height:${size}px;opacity:${Math.random() * 0.5 + 0.2};left:${left}%;animation-duration:${Math.random() * 3 + 4}s;animation-delay:-${delay}s;`;
+        } else if (className === 'cloud-particle') {
+            const size = Math.random() * 300 + 200;
+            el.style = `width:${size}px;height:${size}px;top:${Math.random() * 100}%;opacity:${Math.random() * 0.2 + 0.05};left:${left}%;animation-duration:${Math.random() * 20 + 20}s;animation-delay:-${delay}s;`;
+        }
+        frag.appendChild(el);
+    }
+    container.appendChild(frag);
+}
+
+async function getForecast(city) {
+    try {
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${API_KEY}&units=metric&lang=ca`);
+        const data = await res.json();
+        if (!res.ok) return;
+
+        forecastData = {};
+        data.list.forEach(item => {
+            const date = new Date(item.dt * 1000).toDateString();
+            if (!forecastData[date]) forecastData[date] = [];
+            forecastData[date].push(item);
+        });
+
+        const grid = document.getElementById('forecastGrid');
+        grid.innerHTML = '';
+
+        Object.keys(forecastData).slice(0, 5).forEach(date => {
+            const day = forecastData[date];
+            const temps = day.map(d => d.main.temp);
+            const counts = {};
+            day.forEach(d => { counts[d.weather[0].description] = (counts[d.weather[0].description] || 0) + 1; });
+            const mainDesc = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+            const icon = day.find(d => d.weather[0].description === mainDesc).weather[0].icon;
+
+            const card = document.createElement('div');
+            card.className = 'forecast-card';
+            card.innerHTML = `<div class="forecast-date">${new Date(date).toLocaleDateString('ca-ES', { weekday: 'short', day: 'numeric' })}</div><img class="forecast-icon" src="https://openweathermap.org/img/wn/${icon.replace('n', 'd')}@2x.png" alt="${mainDesc}"><div class="forecast-temp">${Math.round(Math.min(...temps))}° / ${Math.round(Math.max(...temps))}°</div><div class="forecast-desc">${mainDesc.charAt(0).toUpperCase() + mainDesc.slice(1)}</div>`;
+            card.addEventListener('click', () => showForecastDetails(date));
+            grid.appendChild(card);
+        });
+        document.getElementById('forecastContainer').style.display = 'block';
+    } catch (e) {}
+}
+
+function showForecastDetails(date) {
+    const modal = document.getElementById('forecastModal');
+    document.getElementById('modalDate').innerText = new Date(date).toLocaleDateString('ca-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const details = document.getElementById('modalDetails');
+    details.innerHTML = '';
+
+    forecastData[date].forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'hourly-item';
+        div.innerHTML = `<div class="hourly-time">${new Date(item.dt * 1000).toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' })}</div><img src="https://openweathermap.org/img/wn/${item.weather[0].icon}.png" alt="${item.weather[0].description}" style="width:40px;height:40px;"><div class="hourly-desc">${item.weather[0].description.charAt(0).toUpperCase() + item.weather[0].description.slice(1)}</div><div class="hourly-temp">${Math.round(item.main.temp)}°</div>`;
+        details.appendChild(div);
+    });
+    modal.style.display = 'block';
+}
+
+document.querySelector('.close').addEventListener('click', () => document.getElementById('forecastModal').style.display = 'none');
+window.addEventListener('click', e => { if (e.target === document.getElementById('forecastModal')) e.target.style.display = 'none'; });
+
+document.querySelector('.header-logo').addEventListener('click', e => {
+    e.preventDefault();
+    localStorage.removeItem('lastCity');
+    document.getElementById('cityInput').value = '';
+    document.getElementById('weatherResult').style.display = 'none';
+    document.getElementById('forecastContainer').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'none';
+    document.getElementById('homeMapContainer').style.display = 'block';
+    document.body.className = '';
+    document.getElementById('weather-bg').innerHTML = '';
+    window.location.href = 'index.html';
+});
+
+async function initAuthSystem() {
+    if (window.supabaseReady) await window.supabaseReady;
+    await initAuth();
+}
+
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
+const authModal = document.getElementById('authModal');
+const authClose = document.querySelector('.auth-close');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const showRegister = document.getElementById('showRegister');
+const showLogin = document.getElementById('showLogin');
+const loginSubmit = document.getElementById('loginSubmit');
+const registerSubmit = document.getElementById('registerSubmit');
+const authMessage = document.getElementById('authMessage');
+const userMenu = document.getElementById('userMenu');
+const userBtn = document.getElementById('userBtn');
+const userDropdown = document.getElementById('userDropdown');
+const userName = document.getElementById('userName');
+const logoutBtn = document.getElementById('logoutBtn');
+
+function openModal() { authModal.classList.add('active'); }
+function closeModal() { authModal.classList.remove('active'); clearForm(); }
+function clearForm() {
+    ['loginEmail', 'loginPassword', 'registerUsername', 'registerEmail', 'registerPassword'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    if (authMessage) { authMessage.style.display = 'none'; authMessage.className = 'auth-message'; }
+}
+function showMessage(msg, type = 'info') { authMessage.textContent = msg; authMessage.className = `auth-message ${type}`; authMessage.style.display = 'block'; }
+
+showRegister?.addEventListener('click', () => { loginForm.style.display = 'none'; registerForm.style.display = 'block'; clearForm(); });
+showLogin?.addEventListener('click', () => { registerForm.style.display = 'none'; loginForm.style.display = 'block'; clearForm(); });
+loginBtn?.addEventListener('click', openModal);
+registerBtn?.addEventListener('click', openModal);
+authClose?.addEventListener('click', closeModal);
+authModal?.addEventListener('click', e => { if (e.target === authModal) closeModal(); });
+
+loginSubmit?.addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { showMessage('Si us plau, completa tots els camps', 'error'); return; }
+    loginSubmit.disabled = true;
+    loginSubmit.textContent = 'Iniciant sessió...';
+    const result = await window.signIn(email, password);
+    if (result.success) { showMessage('Sessió iniciada correctament!', 'success'); setTimeout(() => { closeModal(); updateAuthUI(result.user); }, 1000); }
+    else { showMessage(result.error || 'Error en iniciar sessió', 'error'); }
+    loginSubmit.disabled = false;
+    loginSubmit.textContent = 'Iniciar sessió';
+});
+
+registerSubmit?.addEventListener('click', async () => {
+    const username = document.getElementById('registerUsername').value.trim();
+    const email = document.getElementById('registerEmail').value.trim();
+    const password = document.getElementById('registerPassword').value;
+    if (!username || !email || !password) { showMessage('Si us plau, completa tots els camps', 'error'); return; }
+    if (password.length < 6) { showMessage('La contrasenya ha de tenir almenys 6 caràcters', 'error'); return; }
+    registerSubmit.disabled = true;
+    registerSubmit.textContent = 'Creant compte...';
+    const result = await window.signUp(email, password, username);
+    if (result.success) { showMessage('Compte creat! Si has activat el correu de confirmació, revisa la teva safata d\'entrada.', 'success'); setTimeout(() => { closeModal(); updateAuthUI(result.user); }, 2000); }
+    else { showMessage(result.error || 'Error en registrar', 'error'); }
+    registerSubmit.disabled = false;
+    registerSubmit.textContent = 'Crear compte';
+});
+
+userBtn?.addEventListener('click', e => { e.stopPropagation(); userDropdown.classList.toggle('active'); });
+document.addEventListener('click', e => { if (userMenu && !userMenu.contains(e.target)) userDropdown.classList.remove('active'); });
+logoutBtn?.addEventListener('click', async () => { await window.signOut(); userDropdown.classList.remove('active'); updateAuthUI(null); });
+
+function updateAuthUI(user) {
+    if (user) {
+        loginBtn && (loginBtn.style.display = 'none');
+        registerBtn && (registerBtn.style.display = 'none');
+        userMenu && (userMenu.style.display = 'block');
+        userName && (userName.textContent = user.user_metadata?.username || user.email?.split('@')[0]);
+    } else {
+        loginBtn && (loginBtn.style.display = 'inline-block');
+        registerBtn && (registerBtn.style.display = 'inline-block');
+        userMenu && (userMenu.style.display = 'none');
+    }
+}
+
+async function initAuth() {
+    if (typeof window.getCurrentUser === 'function') {
+        const result = await window.getCurrentUser();
+        updateAuthUI(result.success ? result.user : null);
+    }
+}
+
+if (typeof window.onAuthStateChanged === 'function') {
+    window.onAuthStateChanged(session => session ? updateAuthUI(session.user) : updateAuthUI(null));
+}
+
+initAuthSystem();
