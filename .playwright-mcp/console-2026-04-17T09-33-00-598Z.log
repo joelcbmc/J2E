@@ -1,0 +1,5 @@
+[     369ms] [LOG] Supabase initialized successfully @ http://localhost:8080/lib/supabaseClient.js:17
+[     375ms] Unexpected token 'export'
+[     568ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:8080/:0
+[     568ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:8080/:0
+[   10648ms] [ERROR] Geolocation error: GeolocationPositionError @ http://localhost:8080/javascript/script.js:80
